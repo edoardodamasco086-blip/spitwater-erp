@@ -5,7 +5,7 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
-	host: true,
+    host: true,          // Allows access from other machines on LAN (http://YOUR-IP:5173)
     // Proxy all /api requests to the Express backend
     // This means React calls /api/auth/login (no CORS issues in dev)
     proxy: {

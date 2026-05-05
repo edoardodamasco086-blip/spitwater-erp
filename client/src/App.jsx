@@ -10,7 +10,10 @@ import AdminHomePage    from './pages/admin/AdminHomePage';
 import UsersPage        from './pages/admin/UsersPage';
 import ProfilePage      from './pages/dashboard/ProfilePage';
 import NotFoundPage     from './pages/NotFoundPage';
-import ContactsPage     from './pages/contacts/ContactsPage';
+import ContactsPage       from './pages/contacts/ContactsPage';
+import SettingsPage       from './pages/settings/SettingsPage';
+import TeamsPage          from './pages/admin/TeamsPage';
+import AcceptInvitePage   from './pages/auth/AcceptInvitePage';
 
 // ── Route guards ───────────────────────────────────────────────
 function RequireAuth({ children }) {
@@ -50,6 +53,7 @@ export default function App() {
   return (
     <Routes>
       {/* Public */}
+      <Route path="/accept-invite" element={<AcceptInvitePage />} />
       <Route path="/login" element={
         <GuestOnly><LoginPage /></GuestOnly>
       } />
@@ -62,6 +66,12 @@ export default function App() {
         <Route index element={<HomePage />} />
         <Route path="profile" element={<ProfilePage />} />
         <Route path="contacts" element={<ContactsPage />} />
+        <Route path="settings" element={
+          <RequireAdmin><SettingsPage /></RequireAdmin>
+        } />
+        <Route path="admin/teams" element={
+          <RequireAdmin><TeamsPage /></RequireAdmin>
+        } />
 
         {/* Admin routes */}
         <Route path="admin" element={

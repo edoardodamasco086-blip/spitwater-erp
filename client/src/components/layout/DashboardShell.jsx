@@ -191,14 +191,15 @@ export default function DashboardShell() {
                 <NavItem to="/admin"       icon={<ShieldIcon />} label="Overview"        collapsed={collapsed} end />
                 <NavItem to="/admin/users" icon={<UsersIcon />}  label="Users & Teams"   collapsed={collapsed} />
                 <NavItem to="/admin/roles" icon={<KeyIcon />}    label="Roles & Permissions" collapsed={collapsed} />
+                <NavItem to="/admin/teams" icon={<UsersIcon />}  label="Teams"               collapsed={collapsed} />
               </NavSection>
               <div className={styles.navDivider} />
               <NavSection label="Settings" collapsed={collapsed}>
-                <NavItem to="/settings/org"        icon={<OrgIcon />}   label="Organisation"      collapsed={collapsed} />
-                <NavItem to="/settings/accounting" icon={<DollarIcon />} label="Accounting & Tax"  collapsed={collapsed} />
-                <NavItem to="/settings/email"      icon={<MailIcon />}  label="Email & SMTP"      collapsed={collapsed} />
-                <NavItem to="/settings/numbering"  icon={<HashIcon />}  label="Numbering Series"  collapsed={collapsed} />
-                <NavItem to="/settings/warehouses" icon={<WarehouseIcon />} label="Warehouses"    collapsed={collapsed} />
+                <NavItem to="/settings" icon={<OrgIcon />}   label="Organisation"      collapsed={collapsed} />
+                <NavItem to="/settings" icon={<DollarIcon />} label="Accounting & Tax"  collapsed={collapsed} />
+                <NavItem to="/settings" icon={<MailIcon />}  label="Email & SMTP"      collapsed={collapsed} />
+                
+                
               </NavSection>
             </>
           )}
@@ -206,7 +207,8 @@ export default function DashboardShell() {
 
         {/* Nav bottom */}
         <div className={styles.navBottom}>
-          <NavItem to="/profile" icon={<UserIcon />} label="My Profile" collapsed={collapsed} />
+          <NavItem to="/profile"  icon={<UserIcon />}  label="My Profile" collapsed={collapsed} />
+          <NavItem to="/settings" icon={<SettingsIcon />} label="Settings"   collapsed={collapsed} />
         </div>
       </nav>
 
@@ -312,3 +314,4 @@ function OrgIcon()       { return ic(<><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a
 function DollarIcon()    { return ic(<><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></>); }
 function MailIcon()      { return ic(<><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></>); }
 function HashIcon()      { return ic(<><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></>); }
+function SettingsIcon()    { return ic(<><circle cx='12' cy='12' r='3'/><path d='M19.07 4.93l-1.41 1.41M5.34 5.34L3.93 6.75M12 2v2M12 20v2M2 12h2M20 12h2M4.93 19.07l1.41-1.41M18.66 18.66l1.41 1.41'/></>); }
