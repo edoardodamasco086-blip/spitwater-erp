@@ -23,7 +23,9 @@ const dashboardRoutes  = require('./routes/dashboard');
 const contactsRoutes   = require('./routes/contacts');
 const settingsRoutes   = require('./routes/settings');
 const teamsRoutes      = require('./routes/teams');
-const inviteRoutes     = require('./routes/invite-accept');
+const inviteRoutes      = require('./routes/invite-accept');
+const permissionsRoutes = require('./routes/permissions');
+const numberingRoutes   = require('./routes/numbering');
 
 // ── Create app ────────────────────────────────────────────────
 const app  = express();
@@ -100,7 +102,9 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/contacts',  contactsRoutes);
 app.use('/api/settings',  settingsRoutes);
 app.use('/api/teams',     teamsRoutes);
-app.use('/api/invite',    inviteRoutes);
+app.use('/api/invite',       inviteRoutes);
+app.use('/api/permissions',  permissionsRoutes);
+app.use('/api/numbering',    numberingRoutes);
 
 // ── Serve React build in production ──────────────────────────
 // In dev, React runs on its own Vite server (port 5173).

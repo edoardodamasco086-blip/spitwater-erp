@@ -19,6 +19,7 @@ const router  = express.Router();
 const { sql, pool, poolConnect } = require('../config/db');
 const { requireAuth, requireMinRole } = require('../middleware/auth');
 const { asyncHandler }                = require('../middleware/errorHandler');
+const { requirePermission }           = require('../middleware/permissions');
 const logger                          = require('../config/logger');
 
 router.use(requireAuth);
@@ -27,7 +28,7 @@ router.use(requireAuth);
 // GET /api/contacts
 // Query params: search, type (customer|supplier|both), page, limit
 // ────────────────────────────────────────────────────────────────
-router.get('/', asyncHandler(async (req, res) => {
+router.get('/', requirePermission('contacts','read'), asyncHandler(async (req, res) => {
   await poolConnect;
 
   const orgId   = req.user.orgId;
@@ -111,7 +112,7 @@ router.get('/', asyncHandler(async (req, res) => {
 // ────────────────────────────────────────────────────────────────
 // GET /api/contacts/:id
 // ────────────────────────────────────────────────────────────────
-router.get('/:id', asyncHandler(async (req, res) => {
+router.get('/:id', requirePermission('contacts','read'), asyncHandler(async (req, res) => {
   await poolConnect;
   const orgId = req.user.orgId;
   const id    = parseInt(req.params.id);
@@ -155,7 +156,7 @@ router.get('/:id', asyncHandler(async (req, res) => {
 // ────────────────────────────────────────────────────────────────
 // POST /api/contacts
 // ────────────────────────────────────────────────────────────────
-router.post('/', requireMinRole('editor'), asyncHandler(async (req, res) => {
+router.post('/', requirePermission('contacts','write'), asyncHandler(async (req, res) => {
   await poolConnect;
   const orgId = req.user.orgId;
 
@@ -265,7 +266,7 @@ router.post('/', requireMinRole('editor'), asyncHandler(async (req, res) => {
 // ────────────────────────────────────────────────────────────────
 // PATCH /api/contacts/:id
 // ────────────────────────────────────────────────────────────────
-router.patch('/:id', requireMinRole('editor'), asyncHandler(async (req, res) => {
+router.patch('/:id', requirePermission('contacts','update'), asyncHandler(async (req, res) => {
   await poolConnect;
   const orgId = req.user.orgId;
   const id    = parseInt(req.params.id);
@@ -345,7 +346,7 @@ router.patch('/:id', requireMinRole('editor'), asyncHandler(async (req, res) => 
 // ────────────────────────────────────────────────────────────────
 // PATCH /api/contacts/:id/void   (soft delete — no DELETE)
 // ────────────────────────────────────────────────────────────────
-router.patch('/:id/void', requireMinRole('admin'), asyncHandler(async (req, res) => {
+router.patch('/:id/void', requirePermission('contacts','delete'), asyncHandler(async (req, res) => {
   await poolConnect;
   const { reason } = req.body;
   const id = parseInt(req.params.id);
