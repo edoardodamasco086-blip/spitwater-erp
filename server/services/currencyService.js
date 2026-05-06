@@ -106,36 +106,28 @@ async function fetchAndStoreRates(pool, sql, baseCurrency = 'AUD') {
       if (isNaN(rate) || rate <= 0) { skipped++; continue; }
 
       try {
-        // Upsert forward rate
+        // Use DELETE + INSERT pattern (most reliable for SQL Server 2014)
         await pool.request()
-          .input('from_currency', sql.VarChar(3),    from)
-          .input('to_currency',   sql.VarChar(3),    to)
-          .input('rate',          sql.Decimal(18,8), rate)
-          .input('rate_date',     sql.Date,          today)
-          .input('source',        sql.VarChar(20),   'api')
+          .input('fcc', sql.VarChar(3),    from)
+          .input('tcc', sql.VarChar(3),    to)
+          .input('rate', sql.Decimal(18,8), rate)
+          .input('rd',   sql.Date,          today)
           .query(`
-            IF EXISTS (SELECT 1 FROM exchange_rates WHERE from_currency_code=@from_currency AND to_currency_code=@to_currency AND rate_date=@rate_date)
-              UPDATE exchange_rates SET rate=@rate, source=@source, created_at=GETDATE()
-              WHERE from_currency_code=@from_currency AND to_currency_code=@to_currency AND rate_date=@rate_date
-            ELSE
-              INSERT INTO exchange_rates (from_currency_code,to_currency_code,rate,rate_date,source,created_at)
-              VALUES (@from_currency,@to_currency,@rate,@rate_date,@source,GETDATE())
+            DELETE FROM exchange_rates WHERE from_currency_code=@fcc AND to_currency_code=@tcc AND rate_date=@rd;
+            INSERT INTO exchange_rates (from_currency_code,to_currency_code,rate,rate_date,source,created_at)
+            VALUES (@fcc,@tcc,@rate,@rd,'api',GETDATE());
           `);
 
-        // Upsert inverse rate
+        // Inverse
         await pool.request()
-          .input('from_currency', sql.VarChar(3),    to)
-          .input('to_currency',   sql.VarChar(3),    from)
-          .input('rate',          sql.Decimal(18,8), 1 / rate)
-          .input('rate_date',     sql.Date,          today)
-          .input('source',        sql.VarChar(20),   'api')
+          .input('fcc', sql.VarChar(3),    to)
+          .input('tcc', sql.VarChar(3),    from)
+          .input('rate', sql.Decimal(18,8), 1 / rate)
+          .input('rd',   sql.Date,          today)
           .query(`
-            IF EXISTS (SELECT 1 FROM exchange_rates WHERE from_currency_code=@from_currency AND to_currency_code=@to_currency AND rate_date=@rate_date)
-              UPDATE exchange_rates SET rate=@rate, source=@source, created_at=GETDATE()
-              WHERE from_currency_code=@from_currency AND to_currency_code=@to_currency AND rate_date=@rate_date
-            ELSE
-              INSERT INTO exchange_rates (from_currency_code,to_currency_code,rate,rate_date,source,created_at)
-              VALUES (@from_currency,@to_currency,@rate,@rate_date,@source,GETDATE())
+            DELETE FROM exchange_rates WHERE from_currency_code=@fcc AND to_currency_code=@tcc AND rate_date=@rd;
+            INSERT INTO exchange_rates (from_currency_code,to_currency_code,rate,rate_date,source,created_at)
+            VALUES (@fcc,@tcc,@rate,@rd,'api',GETDATE());
           `);
 
         stored++;

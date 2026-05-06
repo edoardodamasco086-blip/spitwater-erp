@@ -38,7 +38,7 @@ router.get('/', asyncHandler(async (req, res) => {
 
   // Merge rates into currencies
   const rateMap = {};
-  ratesRes.forEach(r => { rateMap[r.to_currency] = r; });
+  ratesRes.forEach(r => { rateMap[r.to_currency_code] = r; });
 
   const currencies = currRes.recordset.map(c => ({
     ...c,
