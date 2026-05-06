@@ -66,7 +66,7 @@ router.get('/rate/:from/:to', asyncHandler(async (req, res) => {
     .query(`
       SELECT TOP 1 rate, rate_date, source
       FROM exchange_rates
-      WHERE from_currency=@from AND to_currency=@to
+      WHERE from_currency_code=@from AND to_currency_code=@to
       ORDER BY rate_date DESC
     `);
 
@@ -137,11 +137,11 @@ router.post('/rate/manual', requireRole('admin'), asyncHandler(async (req, res) 
     .input('rate',  sql.Decimal(18,8), r)
     .input('date',  sql.Date,          today)
     .query(`
-      IF EXISTS (SELECT 1 FROM exchange_rates WHERE from_currency=@from AND to_currency=@to AND rate_date=@date)
-        UPDATE exchange_rates SET rate=@rate, source='manual', fetched_at=GETDATE()
-        WHERE from_currency=@from AND to_currency=@to AND rate_date=@date
+      IF EXISTS (SELECT 1 FROM exchange_rates WHERE from_currency_code=@from AND to_currency_code=@to AND rate_date=@date)
+        UPDATE exchange_rates SET rate=@rate, source='manual', created_at=GETDATE()
+        WHERE from_currency_code=@from AND to_currency_code=@to AND rate_date=@date
       ELSE
-        INSERT INTO exchange_rates (from_currency,to_currency,rate,rate_date,source,fetched_at)
+        INSERT INTO exchange_rates (from_currency_code,to_currency_code,rate,rate_date,source,created_at)
         VALUES (@from,@to,@rate,@date,'manual',GETDATE())
     `);
 
@@ -152,11 +152,11 @@ router.post('/rate/manual', requireRole('admin'), asyncHandler(async (req, res) 
     .input('rate',  sql.Decimal(18,8), 1 / r)
     .input('date',  sql.Date,          today)
     .query(`
-      IF EXISTS (SELECT 1 FROM exchange_rates WHERE from_currency=@from AND to_currency=@to AND rate_date=@date)
-        UPDATE exchange_rates SET rate=@rate, source='manual', fetched_at=GETDATE()
-        WHERE from_currency=@from AND to_currency=@to AND rate_date=@date
+      IF EXISTS (SELECT 1 FROM exchange_rates WHERE from_currency_code=@from AND to_currency_code=@to AND rate_date=@date)
+        UPDATE exchange_rates SET rate=@rate, source='manual', created_at=GETDATE()
+        WHERE from_currency_code=@from AND to_currency_code=@to AND rate_date=@date
       ELSE
-        INSERT INTO exchange_rates (from_currency,to_currency,rate,rate_date,source,fetched_at)
+        INSERT INTO exchange_rates (from_currency_code,to_currency_code,rate,rate_date,source,created_at)
         VALUES (@from,@to,@rate,@date,'manual',GETDATE())
     `);
 
@@ -172,7 +172,7 @@ router.get('/history/:from/:to', asyncHandler(async (req, res) => {
     .query(`
       SELECT TOP 30 rate, rate_date, source, fetched_at
       FROM exchange_rates
-      WHERE from_currency=@from AND to_currency=@to
+      WHERE from_currency_code=@from AND to_currency_code=@to
       ORDER BY rate_date DESC
     `);
   return res.json({ success: true, data: rows.recordset });

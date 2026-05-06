@@ -114,11 +114,11 @@ async function fetchAndStoreRates(pool, sql, baseCurrency = 'AUD') {
           .input('rate_date',     sql.Date,          today)
           .input('source',        sql.VarChar(20),   'api')
           .query(`
-            IF EXISTS (SELECT 1 FROM exchange_rates WHERE from_currency=@from_currency AND to_currency=@to_currency AND rate_date=@rate_date)
-              UPDATE exchange_rates SET rate=@rate, source=@source, fetched_at=GETDATE()
-              WHERE from_currency=@from_currency AND to_currency=@to_currency AND rate_date=@rate_date
+            IF EXISTS (SELECT 1 FROM exchange_rates WHERE from_currency_code=@from_currency AND to_currency_code=@to_currency AND rate_date=@rate_date)
+              UPDATE exchange_rates SET rate=@rate, source=@source, created_at=GETDATE()
+              WHERE from_currency_code=@from_currency AND to_currency_code=@to_currency AND rate_date=@rate_date
             ELSE
-              INSERT INTO exchange_rates (from_currency,to_currency,rate,rate_date,source,fetched_at)
+              INSERT INTO exchange_rates (from_currency_code,to_currency_code,rate,rate_date,source,created_at)
               VALUES (@from_currency,@to_currency,@rate,@rate_date,@source,GETDATE())
           `);
 
@@ -130,11 +130,11 @@ async function fetchAndStoreRates(pool, sql, baseCurrency = 'AUD') {
           .input('rate_date',     sql.Date,          today)
           .input('source',        sql.VarChar(20),   'api')
           .query(`
-            IF EXISTS (SELECT 1 FROM exchange_rates WHERE from_currency=@from_currency AND to_currency=@to_currency AND rate_date=@rate_date)
-              UPDATE exchange_rates SET rate=@rate, source=@source, fetched_at=GETDATE()
-              WHERE from_currency=@from_currency AND to_currency=@to_currency AND rate_date=@rate_date
+            IF EXISTS (SELECT 1 FROM exchange_rates WHERE from_currency_code=@from_currency AND to_currency_code=@to_currency AND rate_date=@rate_date)
+              UPDATE exchange_rates SET rate=@rate, source=@source, created_at=GETDATE()
+              WHERE from_currency_code=@from_currency AND to_currency_code=@to_currency AND rate_date=@rate_date
             ELSE
-              INSERT INTO exchange_rates (from_currency,to_currency,rate,rate_date,source,fetched_at)
+              INSERT INTO exchange_rates (from_currency_code,to_currency_code,rate,rate_date,source,created_at)
               VALUES (@from_currency,@to_currency,@rate,@rate_date,@source,GETDATE())
           `);
 
@@ -170,7 +170,7 @@ async function getRate(pool, sql, fromCurrency, toCurrency) {
     .query(`
       SELECT TOP 1 rate, rate_date
       FROM exchange_rates
-      WHERE from_currency = @from AND to_currency = @to
+      WHERE from_currency_code = @from AND to_currency_code = @to
       ORDER BY rate_date DESC
     `);
 
@@ -188,15 +188,15 @@ async function getAllRates(pool, sql, baseCurrency = 'AUD') {
   const res = await pool.request()
     .input('from', sql.VarChar(3), baseCurrency)
     .query(`
-      SELECT er.to_currency, er.rate, er.rate_date,
+      SELECT er.to_currency_code, er.rate, er.rate_date,
              c.name AS currency_name, c.symbol
       FROM exchange_rates er
-      INNER JOIN currencies c ON c.code = er.to_currency
-      WHERE er.from_currency = @from
+      INNER JOIN currencies c ON c.code = er.to_currency_code
+      WHERE er.from_currency_code = @from
         AND er.rate_date = (
-          SELECT MAX(rate_date) FROM exchange_rates WHERE from_currency = @from
+          SELECT MAX(rate_date) FROM exchange_rates WHERE from_currency_code = @from
         )
-      ORDER BY er.to_currency ASC
+      ORDER BY er.to_currency_code ASC
     `);
   return res.recordset;
 }
@@ -210,7 +210,7 @@ function startDailyFetch(pool, sql, baseCurrency = 'AUD') {
       const exists = await pool.request()
         .input('today', sql.Date, today)
         .input('from',  sql.VarChar(3), baseCurrency)
-        .query('SELECT 1 FROM exchange_rates WHERE rate_date=@today AND from_currency=@from');
+        .query('SELECT 1 FROM exchange_rates WHERE rate_date=@today AND from_currency_code=@from');
 
       if (!exists.recordset.length) {
         logger.info('[Currency] No rates for today — fetching now...');
