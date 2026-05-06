@@ -27,6 +27,9 @@ const inviteRoutes      = require('./routes/invite-accept');
 const permissionsRoutes = require('./routes/permissions');
 const numberingRoutes      = require('./routes/numbering');
 const fieldValidationRoutes = require('./routes/field-validation');
+const currencyRoutes        = require('./routes/currency');
+const productUomRoutes      = require('./routes/product-uom');
+const priceListRoutes       = require('./routes/price-lists');
 const productsRoutes    = require('./routes/products');
 
 // ── Create app ────────────────────────────────────────────────
@@ -108,6 +111,9 @@ app.use('/api/invite',       inviteRoutes);
 app.use('/api/permissions',  permissionsRoutes);
 app.use('/api/numbering',        numberingRoutes);
 app.use('/api/field-validation', fieldValidationRoutes);
+app.use('/api/currency',         currencyRoutes);
+app.use('/api/product-uom',      productUomRoutes);
+app.use('/api/price-lists',      priceListRoutes);
 app.use('/api/products',     productsRoutes);
 
 // ── Serve uploaded files (images, documents) ─────────────────

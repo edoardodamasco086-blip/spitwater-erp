@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import OrgSettings       from './sections/OrgSettings';
 import SmtpSettings      from './sections/SmtpSettings';
+import CurrencySettings    from './sections/CurrencySettings';
 import NumberingSettings from './sections/NumberingSettings';
 import WarehouseSettings from './sections/WarehouseSettings';
 import AuditLog          from './sections/AuditLog';

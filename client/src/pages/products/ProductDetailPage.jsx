@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { productsApi } from '../../api/products';
+import { productUomApi, currencyApi } from '../../api/productUom';
 import { useFieldValidation } from '../../hooks/useFieldValidation';
 import styles from './ProductDetailPage.module.css';
 
@@ -55,6 +56,9 @@ export default function ProductDetailPage() {
   const [pricing,      setPricing]      = useState([]);
   const [stock,        setStock]        = useState([]);
   const [loading,      setLoading]      = useState(!isNew);
+  const [uomConversions, setUomConversions] = useState([]);
+  const [supplierPrices, setSupplierPrices] = useState([]);
+  const [currencies,     setCurrencies]     = useState([]);
   const [saving,       setSaving]       = useState(false);
   const [activeTab,    setActiveTab]    = useState('overview');
   const [error,        setError]        = useState('');
@@ -92,6 +96,31 @@ export default function ProductDetailPage() {
       .then(({ data }) => setUoms(data.data || []))
       .catch(() => {});
 
+    currencyApi.list()
+      .then(({ data }) => {
+        const curs = data.data || [];
+        // Fallback: if no currencies returned, use hardcoded common ones
+        if (curs.length === 0) {
+          setCurrencies([
+            { code: 'AUD', name: 'Australian Dollar', symbol: '$', is_active: true, is_base: true },
+            { code: 'USD', name: 'US Dollar',          symbol: '$', is_active: true, is_base: false },
+            { code: 'EUR', name: 'Euro',               symbol: '€', is_active: true, is_base: false },
+            { code: 'GBP', name: 'British Pound',      symbol: '£', is_active: true, is_base: false },
+            { code: 'NZD', name: 'New Zealand Dollar', symbol: '$', is_active: true, is_base: false },
+          ]);
+        } else {
+          setCurrencies(curs);
+        }
+      })
+      .catch(() => {
+        // Fallback on error
+        setCurrencies([
+          { code: 'AUD', name: 'Australian Dollar', symbol: '$', is_active: true, is_base: true },
+          { code: 'USD', name: 'US Dollar',          symbol: '$', is_active: true, is_base: false },
+          { code: 'EUR', name: 'Euro',               symbol: '€', is_active: true, is_base: false },
+        ]);
+      });
+
     productsApi.customFields()
       .then(({ data }) => {
         setCustomFields(data.data || []);
@@ -106,17 +135,21 @@ export default function ProductDetailPage() {
   async function loadProduct() {
     setLoading(true);
     try {
-      const [prodRes, cvRes, pricingRes, stockRes] = await Promise.all([
+      const [prodRes, cvRes, pricingRes, stockRes, uomRes, suppRes] = await Promise.all([
         productsApi.get(id),
         productsApi.getCustomValues(id),
         productsApi.getPricing(id),
         productsApi.getStock(id),
+        productUomApi.list(id).catch(() => ({ data: { data: [] } })),
+        productUomApi.listSupplierPrices(id).catch(() => ({ data: { data: [] } })),
       ]);
       const p = prodRes.data.data;
       setProduct(p);
       setPricing(pricingRes.data.data);
       setStock(stockRes.data.data);
       setCustomValues(cvRes.data.data || {});
+      setUomConversions(uomRes.data.data || []);
+      setSupplierPrices(suppRes.data.data || []);
       // Populate form
       setForm({
         name:                    p.name || '',
@@ -475,28 +508,21 @@ export default function ProductDetailPage() {
                 </div>
               </div>
 
-              {/* Pricing section */}
+              {/* Can be sold/purchased flags — kept for document logic */}
               <div className={styles.card}>
-                <div className={styles.cardTitle}>Default Pricing</div>
-                <div className={styles.grid2}>
-                  <div className="form-group">
-                    <label className="form-label">
-                      <label style={{display:'flex',alignItems:'center',gap:6,marginBottom:0}}>
-                        <input type="checkbox" checked={form.can_be_sold} onChange={e => set('can_be_sold', e.target.checked)} style={{accentColor:'var(--accent)'}} />
-                        Can be sold
-                      </label>
-                    </label>
-                    <input className="form-input" type="number" step="0.0001" min="0" placeholder="0.00" value={form.default_sales_price} onChange={e => set('default_sales_price', e.target.value)} disabled={!form.can_be_sold} />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">
-                      <label style={{display:'flex',alignItems:'center',gap:6,marginBottom:0}}>
-                        <input type="checkbox" checked={form.can_be_purchased} onChange={e => set('can_be_purchased', e.target.checked)} style={{accentColor:'var(--accent)'}} />
-                        Can be purchased
-                      </label>
-                    </label>
-                    <input className="form-input" type="number" step="0.0001" min="0" placeholder="0.00" value={form.default_purchase_price} onChange={e => set('default_purchase_price', e.target.value)} disabled={!form.can_be_purchased} />
-                  </div>
+                <div className={styles.cardTitle}>Sales & Purchasing</div>
+                <div style={{display:'flex',gap:24,marginBottom:4}}>
+                  <label style={{display:'flex',alignItems:'center',gap:8,cursor:'pointer',fontSize:13.5}}>
+                    <input type="checkbox" checked={form.can_be_sold} onChange={e => set('can_be_sold', e.target.checked)} style={{accentColor:'var(--accent)',width:15,height:15}} />
+                    Can be sold
+                  </label>
+                  <label style={{display:'flex',alignItems:'center',gap:8,cursor:'pointer',fontSize:13.5}}>
+                    <input type="checkbox" checked={form.can_be_purchased} onChange={e => set('can_be_purchased', e.target.checked)} style={{accentColor:'var(--accent)',width:15,height:15}} />
+                    Can be purchased
+                  </label>
+                </div>
+                <div style={{fontSize:12,color:'var(--text-sub)',marginTop:6}}>
+                  Pricing is managed per UOM in the <button type="button" className="btn-link" onClick={() => setActiveTab('pricing')}>Pricing tab</button>.
                 </div>
               </div>
 
@@ -561,6 +587,19 @@ export default function ProductDetailPage() {
                   </div>
                 </div>
               </div>
+
+              {/* UOM Conversions — only shown on existing products */}
+              {!isNew && (
+                <UomConversionsCard
+                  productId={id}
+                  uoms={uoms}
+                  uomConversions={uomConversions}
+                  onReload={async () => {
+                    const r = await productUomApi.list(id);
+                    setUomConversions(r.data.data || []);
+                  }}
+                />
+              )}
             </div>
 
             {/* Right column — meta */}
@@ -752,70 +791,23 @@ export default function ProductDetailPage() {
         {/* ── PRICING TAB ── */}
         {!isNew && activeTab === 'pricing' && (
           <div className={styles.tabContent}>
-            {pricing.length === 0 ? (
-              <div className={styles.emptyTab}>
-                No price lists configured.
-                <button className="btn btn-outline btn-sm" style={{marginTop:12}} onClick={() => navigate('/settings')}>
-                  Create price lists in Settings
-                </button>
-              </div>
-            ) : (
-              <>
-                <div className="table-wrap" style={{ border: '1px solid var(--border)', borderRadius: 8 }}>
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Price list</th>
-                        <th>Type</th>
-                        <th>Unit price (AUD)</th>
-                        <th>Min qty</th>
-                        <th>Discount %</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {pricing.map((p, i) => (
-                        <tr key={p.price_list_id}>
-                          <td>
-                            <div style={{ fontWeight: 500 }}>{p.price_list_name}</div>
-                            {p.is_default && <div style={{ fontSize: 11, color: 'var(--accent)' }}>Default</div>}
-                          </td>
-                          <td><span className="pill pill-grey">{p.price_list_type}</span></td>
-                          <td>
-                            <input
-                              className="form-input"
-                              type="number" step="0.0001" min="0"
-                              style={{ width: 120, fontFamily: 'DM Mono' }}
-                              placeholder="Not set"
-                              value={p.unit_price ?? ''}
-                              onChange={e => {
-                                const v = [...pricing];
-                                v[i] = { ...v[i], unit_price: e.target.value === '' ? null : parseFloat(e.target.value) };
-                                setPricing(v);
-                              }}
-                            />
-                          </td>
-                          <td>
-                            <input className="form-input" type="number" step="0.0001" min="1" style={{ width: 80 }}
-                              value={p.min_qty || 1}
-                              onChange={e => { const v=[...pricing]; v[i]={...v[i],min_qty:parseFloat(e.target.value)||1}; setPricing(v); }} />
-                          </td>
-                          <td>
-                            <input className="form-input" type="number" step="0.01" min="0" max="100" style={{ width: 80 }}
-                              value={p.discount_pct || 0}
-                              onChange={e => { const v=[...pricing]; v[i]={...v[i],discount_pct:parseFloat(e.target.value)||0}; setPricing(v); }} />
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
-                  <button className="btn btn-primary" onClick={handleSavePricing} disabled={saving}>
-                    {saving ? 'Saving...' : 'Save pricing'}
-                  </button>
-                </div>
-              </>
-            )}
+            <PricingTab
+              productId={id}
+              pricing={pricing}
+              setPricing={setPricing}
+              uomConversions={uomConversions}
+              supplierPrices={supplierPrices}
+              setSupplierPrices={setSupplierPrices}
+              uoms={uoms}
+              currencies={currencies}
+              saving={saving}
+              onSavePricing={handleSavePricing}
+              navigate={navigate}
+              onReloadSupplier={async () => {
+                const r = await productUomApi.listSupplierPrices(id);
+                setSupplierPrices(r.data.data || []);
+              }}
+            />
           </div>
         )}
 
@@ -896,3 +888,383 @@ function SvgIcon({ children, size = 15 }) {
 function ArrowIcon()  { return <SvgIcon><polyline points="15 18 9 12 15 6"/></SvgIcon>; }
 function AlertIcon()  { return <SvgIcon size={14}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></SvgIcon>; }
 function UploadIcon() { return <SvgIcon><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></SvgIcon>; }
+function PlusIcon()   { return <SvgIcon><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></SvgIcon>; }
+function TrashIcon()  { return <SvgIcon size={13}><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></SvgIcon>; }
+
+// ── PricingTab ─────────────────────────────────────────────────
+function PricingTab({ productId, pricing, setPricing, uomConversions, supplierPrices,
+  setSupplierPrices, uoms, currencies, saving, onSavePricing, navigate, onReloadSupplier }) {
+
+  const [showAddSupplier, setShowAddSupplier] = useState(false);
+  const [newSupplier, setNewSupplier] = useState({ contact_id: '', uom_id: '', unit_price: '', currency_code: 'AUD', min_order_qty: 1, lead_time_days: '', notes: '' });
+  const [suppliers, setSuppliers] = useState([]);
+  const [savingSupp, setSavingSupp] = useState(false);
+
+  // Load suppliers (contacts of type supplier)
+  useEffect(() => {
+    fetch('/api/contacts?type=supplier&limit=200', { headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` } })
+      .then(r => r.json()).then(d => setSuppliers(d.data || [])).catch(() => {});
+  }, []);
+
+  // Available UOMs = base + all conversions
+  const allUoms = [
+    ...uoms.filter(u => uomConversions.find(c => c.uom_id === u.id || c.uom_role === 'base') || true),
+  ].filter((u, i, arr) => arr.findIndex(x => x.id === u.id) === i);
+
+  const activeCurrencies = currencies.filter(c => c.is_active);
+
+  async function handleAddSupplierPrice() {
+    if (!newSupplier.contact_id || !newSupplier.uom_id || !newSupplier.unit_price) return;
+    setSavingSupp(true);
+    try {
+      await productUomApi.addSupplierPrice(productId, {
+        ...newSupplier,
+        unit_price:     parseFloat(newSupplier.unit_price),
+        min_order_qty:  parseFloat(newSupplier.min_order_qty) || 1,
+        lead_time_days: newSupplier.lead_time_days ? parseInt(newSupplier.lead_time_days) : null,
+      });
+      setShowAddSupplier(false);
+      setNewSupplier({ contact_id: '', uom_id: '', unit_price: '', currency_code: 'AUD', min_order_qty: 1, lead_time_days: '', notes: '' });
+      await onReloadSupplier();
+    } finally { setSavingSupp(false); }
+  }
+
+  async function handleRemoveSupplierPrice(suppId) {
+    if (!confirm('Remove this supplier price?')) return;
+    await productUomApi.removeSupplierPrice(productId, suppId);
+    await onReloadSupplier();
+  }
+
+  const baseCurrency = currencies.find(c => c.is_base)?.code || 'AUD';
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24, paddingBottom: 32 }}>
+
+      {/* ── Sales Pricing ─── */}
+      <div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 600 }}>Sales Pricing</div>
+            <div style={{ fontSize: 12, color: 'var(--text-sub)', marginTop: 2 }}>
+              Prices per price list. Each price list can have multiple rows for different UOMs or quantity breaks.
+            </div>
+          </div>
+          <button className="btn btn-primary btn-sm" onClick={onSavePricing} disabled={saving}>
+            {saving ? 'Saving...' : 'Save sales pricing'}
+          </button>
+        </div>
+
+        {pricing.length === 0 ? (
+          <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-sub)', background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 8 }}>
+            No price lists configured.{' '}
+            <button className="btn-link" onClick={() => navigate('/settings')}>Create price lists in Settings</button>
+          </div>
+        ) : (
+          <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+              <thead>
+                <tr style={{ background: 'rgba(240,244,249,0.6)' }}>
+                  <th style={{ padding: '8px 14px', textAlign: 'left', fontWeight: 500, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-sub)', borderBottom: '1px solid var(--border)' }}>Price List</th>
+                  <th style={{ padding: '8px 14px', textAlign: 'left', fontWeight: 500, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-sub)', borderBottom: '1px solid var(--border)' }}>UOM</th>
+                  <th style={{ padding: '8px 14px', textAlign: 'left', fontWeight: 500, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-sub)', borderBottom: '1px solid var(--border)' }}>Currency</th>
+                  <th style={{ padding: '8px 14px', textAlign: 'left', fontWeight: 500, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-sub)', borderBottom: '1px solid var(--border)' }}>Unit Price</th>
+                  <th style={{ padding: '8px 14px', textAlign: 'left', fontWeight: 500, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-sub)', borderBottom: '1px solid var(--border)' }}>Min Qty</th>
+                  <th style={{ padding: '8px 14px', textAlign: 'left', fontWeight: 500, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-sub)', borderBottom: '1px solid var(--border)' }}>Discount %</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pricing.map((p, i) => (
+                  <tr key={`${p.price_list_id}-${i}`} style={{ borderBottom: '1px solid var(--border)' }}>
+                    <td style={{ padding: '8px 14px' }}>
+                      <div style={{ fontWeight: 500 }}>{p.price_list_name}</div>
+                      {p.is_default && <div style={{ fontSize: 11, color: 'var(--accent)' }}>Default</div>}
+                    </td>
+                    <td style={{ padding: '8px 14px' }}>
+                      <select style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 5, padding: '4px 8px', fontSize: 12, fontFamily: 'inherit' }}
+                        value={p.uom_id || ''}
+                        onChange={e => { const v=[...pricing]; v[i]={...v[i],uom_id:e.target.value||null}; setPricing(v); }}>
+                        <option value="">Base UOM</option>
+                        {uomConversions.map(u => <option key={u.uom_id} value={u.uom_id}>{u.uom_code} ({u.qty_in_base}x)</option>)}
+                      </select>
+                    </td>
+                    <td style={{ padding: '8px 14px' }}>
+                      <select style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 5, padding: '4px 8px', fontSize: 12, fontFamily: 'inherit' }}
+                        value={p.currency_code || baseCurrency}
+                        onChange={e => { const v=[...pricing]; v[i]={...v[i],currency_code:e.target.value}; setPricing(v); }}>
+                        {activeCurrencies.map(c => <option key={c.code} value={c.code}>{c.code} {c.symbol}</option>)}
+                      </select>
+                    </td>
+                    <td style={{ padding: '8px 14px' }}>
+                      <input style={{ width: 110, fontFamily: 'DM Mono', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 5, padding: '4px 8px', fontSize: 13 }}
+                        type="number" step="0.0001" min="0" placeholder="Not set"
+                        value={p.unit_price ?? ''}
+                        onChange={e => { const v=[...pricing]; v[i]={...v[i],unit_price:e.target.value===''?null:parseFloat(e.target.value)}; setPricing(v); }} />
+                    </td>
+                    <td style={{ padding: '8px 14px' }}>
+                      <input style={{ width: 70, fontFamily: 'DM Mono', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 5, padding: '4px 8px', fontSize: 13 }}
+                        type="number" step="0.0001" min="1" value={p.min_qty || 1}
+                        onChange={e => { const v=[...pricing]; v[i]={...v[i],min_qty:parseFloat(e.target.value)||1}; setPricing(v); }} />
+                    </td>
+                    <td style={{ padding: '8px 14px' }}>
+                      <input style={{ width: 70, fontFamily: 'DM Mono', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 5, padding: '4px 8px', fontSize: 13 }}
+                        type="number" step="0.01" min="0" max="100" value={p.discount_pct || 0}
+                        onChange={e => { const v=[...pricing]; v[i]={...v[i],discount_pct:parseFloat(e.target.value)||0}; setPricing(v); }} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* ── Purchase / Supplier Pricing ─── */}
+      <div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 600 }}>Purchase Pricing</div>
+            <div style={{ fontSize: 12, color: 'var(--text-sub)', marginTop: 2 }}>
+              Supplier prices per UOM and currency. Automatically converted to {baseCurrency} at today's rate.
+            </div>
+          </div>
+          <button className="btn btn-outline btn-sm" onClick={() => setShowAddSupplier(v => !v)}>
+            <PlusIcon /> Add supplier price
+          </button>
+        </div>
+
+        {/* Add supplier price form */}
+        {showAddSupplier && (
+          <div style={{ background: 'var(--accent-dim)', border: '1px solid rgba(47,127,232,0.2)', borderRadius: 8, padding: '14px 16px', marginBottom: 12, display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'flex-end' }}>
+            <div className="form-group" style={{ flex: '2 1 160px' }}>
+              <label className="form-label">Supplier *</label>
+              <select className="form-input" value={newSupplier.contact_id} onChange={e => setNewSupplier(s => ({...s, contact_id: e.target.value}))}>
+                <option value="">Select supplier...</option>
+                {suppliers.map(s => <option key={s.id} value={s.id}>{s.full_name}</option>)}
+              </select>
+            </div>
+            <div className="form-group" style={{ flex: '1 1 120px' }}>
+              <label className="form-label">UOM *</label>
+              <select className="form-input" value={newSupplier.uom_id} onChange={e => setNewSupplier(s => ({...s, uom_id: e.target.value}))}>
+                <option value="">Select UOM...</option>
+                {uoms.map(u => <option key={u.id} value={u.id}>{u.code}</option>)}
+              </select>
+            </div>
+            <div className="form-group" style={{ flex: '1 1 100px' }}>
+              <label className="form-label">Price *</label>
+              <input className="form-input" type="number" step="0.0001" min="0" placeholder="0.00" value={newSupplier.unit_price} onChange={e => setNewSupplier(s => ({...s, unit_price: e.target.value}))} style={{ fontFamily: 'DM Mono' }} />
+            </div>
+            <div className="form-group" style={{ flex: '0 1 90px' }}>
+              <label className="form-label">Currency</label>
+              <select className="form-input" value={newSupplier.currency_code} onChange={e => setNewSupplier(s => ({...s, currency_code: e.target.value}))}>
+                {activeCurrencies.map(c => <option key={c.code} value={c.code}>{c.code}</option>)}
+              </select>
+            </div>
+            <div className="form-group" style={{ flex: '0 1 80px' }}>
+              <label className="form-label">Min Qty</label>
+              <input className="form-input" type="number" step="1" min="1" value={newSupplier.min_order_qty} onChange={e => setNewSupplier(s => ({...s, min_order_qty: e.target.value}))} />
+            </div>
+            <div className="form-group" style={{ flex: '0 1 80px' }}>
+              <label className="form-label">Lead (days)</label>
+              <input className="form-input" type="number" min="0" value={newSupplier.lead_time_days} onChange={e => setNewSupplier(s => ({...s, lead_time_days: e.target.value}))} />
+            </div>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <button className="btn btn-primary btn-sm" disabled={savingSupp || !newSupplier.contact_id || !newSupplier.uom_id || !newSupplier.unit_price} onClick={handleAddSupplierPrice}>
+                {savingSupp ? 'Adding...' : 'Add'}
+              </button>
+              <button className="btn btn-outline btn-sm" onClick={() => setShowAddSupplier(false)}>Cancel</button>
+            </div>
+          </div>
+        )}
+
+        {supplierPrices.length === 0 ? (
+          <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-sub)', background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 8 }}>
+            No supplier prices yet. Add one above.
+          </div>
+        ) : (
+          <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+              <thead>
+                <tr style={{ background: 'rgba(240,244,249,0.6)' }}>
+                  {['Supplier','UOM','Price','Currency','Rate','AUD Equiv.','Min Qty','Lead (days)',''].map(h => (
+                    <th key={h} style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 500, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-sub)', borderBottom: '1px solid var(--border)' }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {supplierPrices.map(sp => (
+                  <tr key={sp.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                    <td style={{ padding: '8px 12px', fontWeight: 500 }}>{sp.supplier_name}</td>
+                    <td style={{ padding: '8px 12px' }}><span className="pill pill-grey">{sp.uom_code}</span></td>
+                    <td style={{ padding: '8px 12px', fontFamily: 'DM Mono' }}>{parseFloat(sp.unit_price).toFixed(4)}</td>
+                    <td style={{ padding: '8px 12px' }}>{sp.currency_code}</td>
+                    <td style={{ padding: '8px 12px', fontFamily: 'DM Mono', fontSize: 11, color: 'var(--text-sub)' }}>{sp.fx_rate ? sp.fx_rate.toFixed(4) : '—'}</td>
+                    <td style={{ padding: '8px 12px', fontFamily: 'DM Mono', fontWeight: 600, color: 'var(--accent)' }}>
+                      {sp.aud_equiv ? `${baseCurrency} ${parseFloat(sp.aud_equiv).toFixed(4)}` : '—'}
+                    </td>
+                    <td style={{ padding: '8px 12px', fontFamily: 'DM Mono' }}>{sp.min_order_qty}</td>
+                    <td style={{ padding: '8px 12px', color: 'var(--text-sub)' }}>{sp.lead_time_days ?? '—'}</td>
+                    <td style={{ padding: '8px 12px' }}>
+                      <button className="btn btn-danger btn-sm" onClick={() => handleRemoveSupplierPrice(sp.id)}><TrashIcon /></button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Shared icon helper ─────────────────────────────────────────
+function ic(p) { return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{p}</svg>; }
+function PlusSmIcon()  { return ic(<><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></>); }
+function TrashSmIcon() { return ic(<><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></>); }
+
+// ── UOM Conversions Card ───────────────────────────────────────
+function UomConversionsCard({ productId, uoms, uomConversions, onReload }) {
+  const [showAdd, setShowAdd] = useState(false);
+  const [newRow,  setNewRow]  = useState({ uom_id: '', uom_role: 'other', qty_in_base: '', barcode: '' });
+  const [saving,  setSaving]  = useState(false);
+  const [error,   setError]   = useState('');
+
+  const ROLE_LABELS = { base: 'Base', purchase: 'Purchase', sales: 'Sales', other: 'Other' };
+  const ROLE_PILLS  = { base: 'pill-blue', purchase: 'pill-green', sales: 'pill-orange', other: 'pill-grey' };
+
+  async function handleAdd() {
+    if (!newRow.uom_id || !newRow.qty_in_base) { setError('UOM and quantity are required.'); return; }
+    setSaving(true); setError('');
+    try {
+      await productUomApi.add(productId, {
+        uom_id:      parseInt(newRow.uom_id),
+        uom_role:    newRow.uom_role,
+        qty_in_base: parseFloat(newRow.qty_in_base),
+        barcode:     newRow.barcode || null,
+      });
+      setNewRow({ uom_id: '', uom_role: 'other', qty_in_base: '', barcode: '' });
+      setShowAdd(false);
+      await onReload();
+    } catch (e) {
+      setError(e.response?.data?.error || 'Failed to add. This UOM may already be configured.');
+    } finally { setSaving(false); }
+  }
+
+  async function handleRemove(uomId) {
+    if (!confirm('Remove this UOM conversion?')) return;
+    try { await productUomApi.remove(productId, uomId); await onReload(); }
+    catch (e) { alert(e.response?.data?.error || 'Failed to remove.'); }
+  }
+
+  const addedIds     = new Set(uomConversions.map(u => u.uom_id));
+  const availableUoms = uoms.filter(u => !addedIds.has(u.id));
+
+  return (
+    <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '18px 20px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+        <div>
+          <div style={{ fontSize: 13.5, fontWeight: 600 }}>Packaging / UOM Conversions</div>
+          <div style={{ fontSize: 11.5, color: 'var(--text-sub)', marginTop: 2 }}>
+            Define how many base units are in each packaging format (BOX50, CTN, etc.)
+          </div>
+        </div>
+        <button type="button" className="btn btn-outline btn-sm"
+          onClick={() => { setShowAdd(v => !v); setError(''); }}>
+          <PlusSmIcon /> Add UOM
+        </button>
+      </div>
+
+      {error && <div style={{ fontSize: 12, color: 'var(--red)', marginBottom: 8 }}>{error}</div>}
+
+      {showAdd && (
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: 12, padding: '10px 12px', background: 'var(--accent-dim)', borderRadius: 8 }}>
+          <div className="form-group" style={{ flex: '2 1 140px', marginBottom: 0 }}>
+            <label className="form-label">UOM *</label>
+            <select className="form-input" value={newRow.uom_id}
+              onChange={e => setNewRow(r => ({...r, uom_id: e.target.value}))}>
+              <option value="">Select UOM...</option>
+              {availableUoms.map(u => <option key={u.id} value={u.id}>{u.code} — {u.name}</option>)}
+            </select>
+          </div>
+          <div className="form-group" style={{ flex: '1 1 110px', marginBottom: 0 }}>
+            <label className="form-label">Role</label>
+            <select className="form-input" value={newRow.uom_role}
+              onChange={e => setNewRow(r => ({...r, uom_role: e.target.value}))}>
+              <option value="base">Base (inventory)</option>
+              <option value="purchase">Purchase</option>
+              <option value="sales">Sales</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div className="form-group" style={{ flex: '1 1 90px', marginBottom: 0 }}>
+            <label className="form-label">Qty in base *</label>
+            <input className="form-input" type="number" step="0.000001" min="0.000001"
+              placeholder="100" value={newRow.qty_in_base}
+              onChange={e => setNewRow(r => ({...r, qty_in_base: e.target.value}))}
+              style={{ fontFamily: 'DM Mono' }} />
+          </div>
+          <div className="form-group" style={{ flex: '2 1 130px', marginBottom: 0 }}>
+            <label className="form-label">Barcode (auto if blank)</label>
+            <input className="form-input" placeholder="Auto-generated"
+              value={newRow.barcode} onChange={e => setNewRow(r => ({...r, barcode: e.target.value}))}
+              style={{ fontFamily: 'DM Mono' }} />
+          </div>
+          <div style={{ display: 'flex', gap: 6, paddingBottom: 2 }}>
+            <button type="button" className="btn btn-primary btn-sm"
+              disabled={saving || !newRow.uom_id || !newRow.qty_in_base}
+              onClick={handleAdd}>
+              {saving ? '...' : 'Add'}
+            </button>
+            <button type="button" className="btn btn-outline btn-sm" onClick={() => setShowAdd(false)}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {uomConversions.length === 0 ? (
+        <div style={{ fontSize: 13, color: 'var(--text-sub)', textAlign: 'center', padding: '14px 0' }}>
+          No packaging units defined. The base UOM is set in Product Details above.
+        </div>
+      ) : (
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+          <thead>
+            <tr>
+              {['UOM', 'Role', 'Qty in base', 'Barcode', ''].map(h => (
+                <th key={h} style={{ padding: '5px 8px', textAlign: 'left', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-sub)', borderBottom: '1px solid var(--border)', fontWeight: 600 }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {uomConversions.map(u => (
+              <tr key={u.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                <td style={{ padding: '7px 8px' }}>
+                  <span style={{ fontFamily: 'DM Mono', fontWeight: 700, background: 'var(--accent-dim)', color: 'var(--accent)', padding: '2px 7px', borderRadius: 4, fontSize: 12 }}>
+                    {u.uom_code}
+                  </span>
+                  <span style={{ marginLeft: 6, fontSize: 11.5, color: 'var(--text-sub)' }}>{u.uom_name}</span>
+                </td>
+                <td style={{ padding: '7px 8px' }}>
+                  <span className={`pill ${ROLE_PILLS[u.uom_role] || 'pill-grey'}`}>
+                    {ROLE_LABELS[u.uom_role] || u.uom_role}
+                  </span>
+                </td>
+                <td style={{ padding: '7px 8px', fontFamily: 'DM Mono', fontWeight: 600 }}>
+                  &times; {parseFloat(u.qty_in_base).toLocaleString('en-AU', { maximumFractionDigits: 6 })}
+                </td>
+                <td style={{ padding: '7px 8px', fontFamily: 'DM Mono', fontSize: 11.5, color: 'var(--text-sub)' }}>
+                  {u.barcode || '—'}
+                </td>
+                <td style={{ padding: '7px 8px' }}>
+                  <button type="button" className="btn btn-danger btn-sm" onClick={() => handleRemove(u.id)}>
+                    <TrashSmIcon />
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+}

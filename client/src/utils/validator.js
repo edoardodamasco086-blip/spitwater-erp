@@ -215,15 +215,45 @@ export function transformValue(value, transform) {
 }
 
 // ── Validate an entire form against an array of rules ─────────
-// Returns null if valid, or { fieldKey: errorMessage } if errors
+// Supports multiple rules per field_key (v2).
+// For each field, runs ALL rules and collects the FIRST error per field.
+// Returns null if valid, or { fieldKey: errorMessage } if errors.
 export function validateForm(formData, rules, context = {}) {
   const errors = {};
+
+  // Group rules by field_key, preserving order
+  const fieldRules = {};
   for (const rule of rules) {
     if (!rule.is_active) continue;
-    const value = formData[rule.field_key];
-    const error = validateField(value, rule, context);
-    if (error) errors[rule.field_key] = error;
+    if (!fieldRules[rule.field_key]) fieldRules[rule.field_key] = [];
+    fieldRules[rule.field_key].push(rule);
   }
+
+  for (const [fieldKey, fieldRuleList] of Object.entries(fieldRules)) {
+    const value = formData[fieldKey];
+
+    // Check required on the FIRST rule for this field (only one rule per field
+    // should have is_required = true — the first/primary one)
+    const primaryRule = fieldRuleList[0];
+    const isEmpty = value === undefined || value === null || String(value).trim() === '';
+
+    if (primaryRule.is_required && isEmpty) {
+      errors[fieldKey] = primaryRule.validation_msg || `${primaryRule.field_label} is required.`;
+      continue; // No point validating further if empty and required
+    }
+
+    if (isEmpty) continue; // Optional and empty — skip all validations
+
+    // Run every rule for this field, stop at first error
+    for (const rule of fieldRuleList) {
+      const error = validateField(value, rule, context);
+      if (error) {
+        errors[fieldKey] = error;
+        break; // Show first failing rule's error
+      }
+    }
+  }
+
   return Object.keys(errors).length > 0 ? errors : null;
 }
 
@@ -241,8 +271,24 @@ export function transformForm(formData, rules) {
 }
 
 // ── Real-time single field validation (for onBlur) ────────────
+// Runs ALL rules for the field and returns the first error found.
 export function validateFieldLive(fieldKey, value, rules, context = {}) {
-  const rule = rules.find(r => r.field_key === fieldKey);
-  if (!rule) return null;
-  return validateField(value, rule, context);
+  const fieldRules = rules.filter(r => r.field_key === fieldKey && r.is_active !== false);
+  if (!fieldRules.length) return null;
+
+  const isEmpty = value === undefined || value === null || String(value).trim() === '';
+
+  // Required check first
+  const primary = fieldRules[0];
+  if (primary.is_required && isEmpty) {
+    return primary.validation_msg || `${primary.field_label} is required.`;
+  }
+  if (isEmpty) return null;
+
+  // Run each rule until an error is found
+  for (const rule of fieldRules) {
+    const error = validateField(value, rule, context);
+    if (error) return error;
+  }
+  return null;
 }

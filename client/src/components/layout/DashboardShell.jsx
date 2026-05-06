@@ -196,6 +196,9 @@ export default function DashboardShell() {
                 <NavItem to="/admin/products/custom-fields"icon={<FieldsIcon />} label="Custom Fields"       collapsed={collapsed} />
                 <NavItem to="/admin/products/uom"           icon={<UomIcon />}       label="Units of Measure"   collapsed={collapsed} />
                 <NavItem to="/admin/field-validation"      icon={<ValidationIcon />} label="Field Validation"   collapsed={collapsed} />
+                <NavItem to="/admin/customer-tiers"        icon={<TierIcon />}       label="Customer Tiers"    collapsed={collapsed} />
+                <NavItem to="/admin/price-lists"           icon={<ListIcon />}       label="Price Lists"       collapsed={collapsed} />
+                <NavItem to="/admin/exchange-rates"        icon={<FxIcon />}         label="Exchange Rates"    collapsed={collapsed} />
               </NavSection>
               <div className={styles.navDivider} />
               <NavSection label="Settings" collapsed={collapsed}>
@@ -323,3 +326,6 @@ function TagIcon()    { return ic(<><path d='M20.59 13.41l-7.17 7.17a2 2 0 0 1-2
 function FieldsIcon() { return ic(<><line x1='8' y1='6' x2='21' y2='6'/><line x1='8' y1='12' x2='21' y2='12'/><line x1='8' y1='18' x2='21' y2='18'/><line x1='3' y1='6' x2='3.01' y2='6'/><line x1='3' y1='12' x2='3.01' y2='12'/><line x1='3' y1='18' x2='3.01' y2='18'/></>); }
 function UomIcon()    { return ic(<><path d='M3 3h7v7H3z'/><path d='M14 3h7v7h-7z'/><path d='M14 14h7v7h-7z'/><path d='M3 14h7v7H3z'/></>); }
 function ValidationIcon() { return ic(<><path d='M22 11.08V12a10 10 0 1 1-5.93-9.14'/><polyline points='22 4 12 14.01 9 11.01'/></>); }
+function TierIcon() { return ic(<><path d='M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z'/></>); }
+function ListIcon() { return ic(<><line x1='8' y1='6' x2='21' y2='6'/><line x1='8' y1='12' x2='21' y2='12'/><line x1='8' y1='18' x2='21' y2='18'/><line x1='3' y1='6' x2='3.01' y2='6'/><line x1='3' y1='12' x2='3.01' y2='12'/><line x1='3' y1='18' x2='3.01' y2='18'/></>); }
+function FxIcon() { return ic(<><line x1='12' y1='1' x2='12' y2='23'/><path d='M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6'/></>); }

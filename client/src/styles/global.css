@@ -254,3 +254,6 @@ tbody tr:hover { background: rgba(47,127,232,0.025); }
   padding: 16px 24px;
   border-top: 1px solid var(--border);
 }
+
+.btn-link { background: none; border: none; color: var(--accent); cursor: pointer; font-family: inherit; font-size: inherit; padding: 0; text-decoration: underline; }
+.btn-link:hover { opacity: 0.8; }

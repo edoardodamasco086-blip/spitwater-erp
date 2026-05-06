@@ -21,6 +21,9 @@ import CategoryManager   from './pages/admin/products/CategoryManager';
 import CustomFieldManager from './pages/admin/products/CustomFieldManager';
 import UomManager            from './pages/admin/products/UomManager';
 import FieldValidationPage   from './pages/admin/FieldValidationPage';
+import CustomerTiersPage    from './pages/admin/CustomerTiersPage';
+import PriceListsPage       from './pages/admin/PriceListsPage';
+import ExchangeRatesPage    from './pages/admin/ExchangeRatesPage';
 
 // ── Route guards ───────────────────────────────────────────────
 function RequireAuth({ children }) {
@@ -79,6 +82,9 @@ export default function App() {
         <Route path="admin/products/custom-fields" element={<RequireAdmin><CustomFieldManager /></RequireAdmin>} />
         <Route path="admin/products/uom"           element={<RequireAdmin><UomManager /></RequireAdmin>} />
         <Route path="admin/field-validation"       element={<RequireAdmin><FieldValidationPage /></RequireAdmin>} />
+        <Route path="admin/customer-tiers"          element={<RequireAdmin><CustomerTiersPage /></RequireAdmin>} />
+        <Route path="admin/price-lists"             element={<RequireAdmin><PriceListsPage /></RequireAdmin>} />
+        <Route path="admin/exchange-rates"          element={<RequireAdmin><ExchangeRatesPage /></RequireAdmin>} />
         <Route path="settings" element={
           <RequireAdmin><SettingsPage /></RequireAdmin>
         } />
