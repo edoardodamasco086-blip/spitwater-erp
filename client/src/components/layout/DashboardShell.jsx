@@ -162,6 +162,7 @@ export default function DashboardShell() {
           <div className={styles.navDivider} />
 
           <NavSection label="Operations" collapsed={collapsed}>
+            <NavItem to="/products"  icon={<ProductIcon />} label="Products"     collapsed={collapsed} />
             <NavItem to="/inventory" icon={<BoxIcon />}      label="Inventory"    collapsed={collapsed} />
             <NavItem to="/warehouse" icon={<WarehouseIcon />} label="Warehouse"   collapsed={collapsed} />
             <NavItem to="/purchasing" icon={<CartIcon />}    label="Purchasing"   collapsed={collapsed} />
@@ -180,7 +181,6 @@ export default function DashboardShell() {
 
           <NavSection label="CRM" collapsed={collapsed}>
             <NavItem to="/contacts" icon={<UsersIcon />}   label="Contacts" collapsed={collapsed} />
-            <NavItem to="/products" icon={<ProductIcon />} label="Products" collapsed={collapsed} />
           </NavSection>
 
           {/* ── ADMIN NAV (only visible to admin+) ── */}
@@ -190,8 +190,12 @@ export default function DashboardShell() {
               <NavSection label="Administration" collapsed={collapsed}>
                 <NavItem to="/admin"       icon={<ShieldIcon />} label="Overview"        collapsed={collapsed} end />
                 <NavItem to="/admin/users" icon={<UsersIcon />}  label="Users & Teams"   collapsed={collapsed} />
-                <NavItem to="/admin/roles" icon={<KeyIcon />}    label="Roles & Permissions" collapsed={collapsed} />
-                <NavItem to="/admin/teams" icon={<UsersIcon />}  label="Teams"               collapsed={collapsed} />
+                <NavItem to="/admin/permissions" icon={<KeyIcon />} label="Roles & Permissions" collapsed={collapsed} />
+                <NavItem to="/admin/teams"             icon={<UsersIcon />}  label="Teams"               collapsed={collapsed} />
+                <NavItem to="/admin/products/categories"   icon={<TagIcon />}    label="Categories"          collapsed={collapsed} />
+                <NavItem to="/admin/products/custom-fields"icon={<FieldsIcon />} label="Custom Fields"       collapsed={collapsed} />
+                <NavItem to="/admin/products/uom"           icon={<UomIcon />}       label="Units of Measure"   collapsed={collapsed} />
+                <NavItem to="/admin/field-validation"      icon={<ValidationIcon />} label="Field Validation"   collapsed={collapsed} />
               </NavSection>
               <div className={styles.navDivider} />
               <NavSection label="Settings" collapsed={collapsed}>
@@ -315,3 +319,7 @@ function DollarIcon()    { return ic(<><line x1="12" y1="1" x2="12" y2="23"/><pa
 function MailIcon()      { return ic(<><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></>); }
 function HashIcon()      { return ic(<><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></>); }
 function SettingsIcon()    { return ic(<><circle cx='12' cy='12' r='3'/><path d='M19.07 4.93l-1.41 1.41M5.34 5.34L3.93 6.75M12 2v2M12 20v2M2 12h2M20 12h2M4.93 19.07l1.41-1.41M18.66 18.66l1.41 1.41'/></>); }
+function TagIcon()    { return ic(<><path d='M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z'/><line x1='7' y1='7' x2='7.01' y2='7'/></>); }
+function FieldsIcon() { return ic(<><line x1='8' y1='6' x2='21' y2='6'/><line x1='8' y1='12' x2='21' y2='12'/><line x1='8' y1='18' x2='21' y2='18'/><line x1='3' y1='6' x2='3.01' y2='6'/><line x1='3' y1='12' x2='3.01' y2='12'/><line x1='3' y1='18' x2='3.01' y2='18'/></>); }
+function UomIcon()    { return ic(<><path d='M3 3h7v7H3z'/><path d='M14 3h7v7h-7z'/><path d='M14 14h7v7h-7z'/><path d='M3 14h7v7H3z'/></>); }
+function ValidationIcon() { return ic(<><path d='M22 11.08V12a10 10 0 1 1-5.93-9.14'/><polyline points='22 4 12 14.01 9 11.01'/></>); }

@@ -14,6 +14,13 @@ import ContactsPage       from './pages/contacts/ContactsPage';
 import SettingsPage       from './pages/settings/SettingsPage';
 import TeamsPage          from './pages/admin/TeamsPage';
 import AcceptInvitePage   from './pages/auth/AcceptInvitePage';
+import PermissionsPage   from './pages/admin/PermissionsPage';
+import ProductsPage      from './pages/products/ProductsPage';
+import ProductDetailPage  from './pages/products/ProductDetailPage';
+import CategoryManager   from './pages/admin/products/CategoryManager';
+import CustomFieldManager from './pages/admin/products/CustomFieldManager';
+import UomManager            from './pages/admin/products/UomManager';
+import FieldValidationPage   from './pages/admin/FieldValidationPage';
 
 // ── Route guards ───────────────────────────────────────────────
 function RequireAuth({ children }) {
@@ -66,11 +73,20 @@ export default function App() {
         <Route index element={<HomePage />} />
         <Route path="profile" element={<ProfilePage />} />
         <Route path="contacts" element={<ContactsPage />} />
+        <Route path="products" element={<ProductsPage />} />
+        <Route path="products/:id" element={<ProductDetailPage />} />
+        <Route path="admin/products/categories"    element={<RequireAdmin><CategoryManager /></RequireAdmin>} />
+        <Route path="admin/products/custom-fields" element={<RequireAdmin><CustomFieldManager /></RequireAdmin>} />
+        <Route path="admin/products/uom"           element={<RequireAdmin><UomManager /></RequireAdmin>} />
+        <Route path="admin/field-validation"       element={<RequireAdmin><FieldValidationPage /></RequireAdmin>} />
         <Route path="settings" element={
           <RequireAdmin><SettingsPage /></RequireAdmin>
         } />
         <Route path="admin/teams" element={
           <RequireAdmin><TeamsPage /></RequireAdmin>
+        } />
+        <Route path="admin/permissions" element={
+          <RequireAdmin><PermissionsPage /></RequireAdmin>
         } />
 
         {/* Admin routes */}

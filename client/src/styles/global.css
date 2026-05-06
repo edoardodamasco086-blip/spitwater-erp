@@ -199,6 +199,13 @@ input, textarea, select { font-family: inherit; font-size: inherit; }
 .form-input.error { border-color: var(--red); box-shadow: 0 0 0 3px var(--red-dim); }
 .form-error { font-size: 12px; color: var(--red); }
 
+/* Field validation error states */
+.form-input.input-error  { border-color: var(--red) !important; box-shadow: 0 0 0 3px var(--red-dim); }
+.field-error             { font-size: 12px; color: var(--red); margin-top: 4px; display: flex; align-items: center; gap: 4px; }
+.field-error::before     { content: '!'; display: inline-flex; align-items: center; justify-content: center; width: 14px; height: 14px; border-radius: 50%; background: var(--red); color: white; font-size: 9px; font-weight: 700; flex-shrink: 0; }
+.req-star                { color: var(--red); margin-left: 2px; font-weight: 700; }
+
+
 /* ── Table ─────────────────────────────────────────────────── */
 .table-wrap { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; }

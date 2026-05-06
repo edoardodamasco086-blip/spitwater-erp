@@ -25,7 +25,9 @@ const settingsRoutes   = require('./routes/settings');
 const teamsRoutes      = require('./routes/teams');
 const inviteRoutes      = require('./routes/invite-accept');
 const permissionsRoutes = require('./routes/permissions');
-const numberingRoutes   = require('./routes/numbering');
+const numberingRoutes      = require('./routes/numbering');
+const fieldValidationRoutes = require('./routes/field-validation');
+const productsRoutes    = require('./routes/products');
 
 // ── Create app ────────────────────────────────────────────────
 const app  = express();
@@ -104,7 +106,12 @@ app.use('/api/settings',  settingsRoutes);
 app.use('/api/teams',     teamsRoutes);
 app.use('/api/invite',       inviteRoutes);
 app.use('/api/permissions',  permissionsRoutes);
-app.use('/api/numbering',    numberingRoutes);
+app.use('/api/numbering',        numberingRoutes);
+app.use('/api/field-validation', fieldValidationRoutes);
+app.use('/api/products',     productsRoutes);
+
+// ── Serve uploaded files (images, documents) ─────────────────
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // ── Serve React build in production ──────────────────────────
 // In dev, React runs on its own Vite server (port 5173).
